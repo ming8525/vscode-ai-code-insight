@@ -1,0 +1,72 @@
+{
+  "name": "ai-code-insight",
+  "displayName": "AI code insight",
+  "description": "",
+  "version": "0.0.1",
+  "icon": "icon.png",
+  "publisher": "ming8525",
+  "engines": {
+    "vscode": "^1.97.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./dist/index.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "javascript",
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".ts",
+          ".tsx"
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "aiCodeInsight.reviewCode",
+        "title": "Review Code with OpenAI"
+      }
+    ],
+    "configuration": {
+      "title": "AI Code Insight",
+      "properties": {
+        "aiCodeInsight.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "OpenAI API Key for AI Code Insight."
+        },
+        "aiCodeInsight.model": {
+          "type": "string",
+          "default": "gpt-4-1106-preview",
+          "description": "The model of OpenAI to use for AI Code Insight."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "package": "vsce package -o dist"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.97.0",
+    "@typescript-eslint/eslint-plugin": "^8.22.0",
+    "@typescript-eslint/parser": "^8.22.0",
+    "eslint": "^9.19.0",
+    "typescript": "^5.7.3",
+    "vsce": "^2.15.0"
+  }
+}

@@ -1,0 +1,169 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.activate = activate;
+exports.deactivate = deactivate;
+const vscode = __importStar(require("vscode"));
+const openai_1 = __importDefault(require("openai"));
+async function getApiKey() {
+    const config = vscode.workspace.getConfiguration('aiCodeInsight');
+    const apiKey = config.get('apiKey');
+    if (!apiKey) {
+        vscode.window.showErrorMessage('Please configure OpenAI API Key in VS Code settings');
+        return undefined;
+    }
+    return apiKey;
+}
+async function getModel() {
+    const config = vscode.workspace.getConfiguration('aiCodeReview');
+    return config.get('model') || 'gpt-4-1106-preview';
+}
+function getLanguageFromFileName(fileName) {
+    const ext = fileName.split('.').pop();
+    const mapping = {
+        js: 'javascript',
+        jsx: 'javascriptreact',
+        ts: 'typescript',
+        tsx: 'typescriptreact',
+        py: 'python',
+        java: 'java',
+        cpp: 'cpp',
+        cs: 'csharp',
+        go: 'go',
+        rb: 'ruby',
+        php: 'php',
+        swift: 'swift',
+        kt: 'kotlin'
+    };
+    return ext ? mapping[ext] : 'plaintext';
+}
+function createPrompt(fileName, code) {
+    const fileContent = code.split("\n").map((line, index) => `${index + 1}: ${line}`).join("\n");
+    return `Your task is to review the following code and provide constructive feedback. Instructions:
+- Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
+- The \"lineNumber\" should exactly match the line numbers shown in the provided code.
+- Do not give positive comments or compliments.
+- Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
+- Write the comment in GitHub Markdown format.
+- Focus only on code quality, best practices, potential bugs, performance, and readability.
+- IMPORTANT: NEVER suggest adding comments to the code.
+
+Review the following code in the file **"${fileName}"** and provide feedback accordingly:
+
+\`\`\`${getLanguageFromFileName(fileName)}
+${fileContent}
+\`\`\`
+`;
+}
+async function getAIResponse(openai, model, prompt) {
+    const queryConfig = {
+        model,
+        temperature: 0.2,
+        max_tokens: 700,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
+    };
+    try {
+        const response = await openai.chat.completions.create({
+            ...queryConfig,
+            // return JSON if the model supports it:
+            ...(model === "gpt-4-1106-preview"
+                ? { response_format: { type: "json_object" } }
+                : {}),
+            messages: [
+                {
+                    role: "system",
+                    content: prompt,
+                },
+            ],
+        });
+        const res = response.choices[0].message?.content?.trim() || "{}";
+        return JSON.parse(res).reviews;
+    }
+    catch (error) {
+        vscode.window.showErrorMessage(`Code review failed: ${error}`);
+        return null;
+    }
+}
+async function reviewCode() {
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+        return;
+    }
+    const model = await getModel();
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showWarningMessage('Please open a code file');
+        return;
+    }
+    const fileName = editor.document.fileName;
+    const code = editor.document.getText();
+    const prompt = createPrompt(fileName, code);
+    vscode.window.showInformationMessage('Analyzing code, please wait...');
+    try {
+        const openai = new openai_1.default({ apiKey });
+        const reviews = await getAIResponse(openai, model, prompt);
+        if (!reviews) {
+            return;
+        }
+        const diagnostics = vscode.languages.createDiagnosticCollection('aiCodeInsight');
+        const uri = editor.document.uri;
+        const issues = [];
+        reviews.forEach((review) => {
+            let line = review.lineNumber - 1;
+            if (line < 0) {
+                line = 0;
+            }
+            const range = new vscode.Range(line, 0, line, editor.document.lineAt(line).text.length);
+            const diagnostic = new vscode.Diagnostic(range, review.reviewComment, vscode.DiagnosticSeverity.Warning);
+            issues.push(diagnostic);
+        });
+        diagnostics.set(uri, issues);
+        vscode.window.showInformationMessage('Code review completed with AI suggestions');
+    }
+    catch (error) {
+        vscode.window.showErrorMessage(`Code review failed: ${error}`);
+    }
+}
+function activate(context) {
+    const disposable = vscode.commands.registerCommand('aiCodeInsight.reviewCode', reviewCode);
+    context.subscriptions.push(disposable);
+}
+function deactivate() { }
+//# sourceMappingURL=index.js.map
