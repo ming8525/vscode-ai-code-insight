@@ -117,10 +117,12 @@ async function getAIResponse(openai, model, prompt) {
         return JSON.parse(res).reviews;
     }
     catch (error) {
-        vscode.window.showErrorMessage(`Code review failed: ${error}`);
+        vscode.window.showErrorMessage(`CodeInsight: Code review failed: ${error}`);
         return null;
     }
 }
+const diagnostics = vscode.languages.createDiagnosticCollection('aiCodeInsight');
+const hiddenDiagnostics = new Set();
 async function reviewCode() {
     const apiKey = await getApiKey();
     if (!apiKey) {
@@ -130,6 +132,11 @@ async function reviewCode() {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showWarningMessage('Please open a code file');
+        return;
+    }
+    const { languageId } = editor.document;
+    if (!['javascript', 'javascriptreact', 'typescript', 'typescriptreact'].includes(languageId)) {
+        vscode.window.showWarningMessage(`AI Review is not supported for ${languageId} files.`);
         return;
     }
     const fileName = editor.document.fileName;
@@ -142,28 +149,100 @@ async function reviewCode() {
         if (!reviews) {
             return;
         }
-        const diagnostics = vscode.languages.createDiagnosticCollection('aiCodeInsight');
         const uri = editor.document.uri;
+        diagnostics.clear();
         const issues = [];
         reviews.forEach((review) => {
             let line = review.lineNumber - 1;
-            if (line < 0) {
+            if (line < 0 || line >= editor.document.lineCount) {
                 line = 0;
             }
             const range = new vscode.Range(line, 0, line, editor.document.lineAt(line).text.length);
+            const key = `${uri.toString()}:${line}`;
+            if (hiddenDiagnostics.has(key)) {
+                return;
+            }
             const diagnostic = new vscode.Diagnostic(range, review.reviewComment, vscode.DiagnosticSeverity.Warning);
+            diagnostic.code = key;
             issues.push(diagnostic);
         });
         diagnostics.set(uri, issues);
-        vscode.window.showInformationMessage('Code review completed with AI suggestions');
+        vscode.window.showInformationMessage('CodeInsight: Code review completed with AI suggestions');
     }
     catch (error) {
-        vscode.window.showErrorMessage(`Code review failed: ${error}`);
+        vscode.window.showErrorMessage(`CodeInsight: Code review failed: ${error}`);
+    }
+}
+function clearDiagnostics() {
+    diagnostics.clear();
+    hiddenDiagnostics.clear();
+}
+class HideDiagnosticQuickFix {
+    provideCodeActions(document, range, context) {
+        const actions = [];
+        const uri = document.uri;
+        const seenCodes = new Set();
+        for (const diagnostic of context.diagnostics) {
+            if (typeof diagnostic.code === 'string' && !hiddenDiagnostics.has(diagnostic.code)) {
+                if (!seenCodes.has(diagnostic.code)) {
+                    const hideSingleAction = new vscode.CodeAction('CodeInsight: Hide Warning', vscode.CodeActionKind.QuickFix);
+                    hideSingleAction.command = {
+                        title: 'Hide this warning',
+                        command: 'aiCodeInsight.hideDiagnostic',
+                        arguments: [uri, diagnostic.code]
+                    };
+                    actions.push(hideSingleAction);
+                    seenCodes.add(diagnostic.code);
+                }
+            }
+        }
+        if (context.diagnostics.some(d => typeof d.code === 'string' && !hiddenDiagnostics.has(d.code))) {
+            const hideAllAction = new vscode.CodeAction('CodeInsight: Hide All Warnings', vscode.CodeActionKind.QuickFix);
+            hideAllAction.command = {
+                title: 'Hide all warnings',
+                command: 'aiCodeInsight.hideAllDiagnostics',
+                arguments: [uri]
+            };
+            actions.push(hideAllAction);
+        }
+        return actions;
+    }
+}
+function hideDiagnostic(uri, diagnosticCode) {
+    if (!uri) {
+        return;
+    }
+    const currentDiagnostics = diagnostics.get(uri) || [];
+    const updatedDiagnostics = currentDiagnostics.filter(d => d.code !== diagnosticCode);
+    hiddenDiagnostics.add(diagnosticCode);
+    diagnostics.delete(uri);
+    if (updatedDiagnostics.length > 0) {
+        diagnostics.set(uri, updatedDiagnostics);
+    }
+}
+function hideAllDiagnostics(uri) {
+    if (!uri) {
+        return;
+    }
+    const currentDiagnostics = diagnostics.get(uri) || [];
+    let hasUpdates = false;
+    currentDiagnostics.forEach(diagnostic => {
+        if (typeof diagnostic.code === 'string' && !hiddenDiagnostics.has(diagnostic.code)) {
+            hiddenDiagnostics.add(diagnostic.code);
+            hasUpdates = true;
+        }
+    });
+    if (hasUpdates) {
+        diagnostics.delete(uri);
     }
 }
 function activate(context) {
-    const disposable = vscode.commands.registerCommand('aiCodeInsight.reviewCode', reviewCode);
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(vscode.commands.registerCommand('aiCodeInsight.reviewCode', reviewCode), vscode.commands.registerCommand('aiCodeInsight.clearDiagnostics', clearDiagnostics), vscode.commands.registerCommand('aiCodeInsight.hideDiagnostic', hideDiagnostic), vscode.commands.registerCommand('aiCodeInsight.hideAllDiagnostics', hideAllDiagnostics), vscode.languages.registerCodeActionsProvider([
+        { scheme: 'file', language: 'javascript' },
+        { scheme: 'file', language: 'javascriptreact' },
+        { scheme: 'file', language: 'typescript' },
+        { scheme: 'file', language: 'typescriptreact' }
+    ], new HideDiagnosticQuickFix(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
 }
 function deactivate() { }
 //# sourceMappingURL=index.js.map

@@ -33,9 +33,48 @@
     "commands": [
       {
         "command": "aiCodeInsight.reviewCode",
-        "title": "Review Code with OpenAI"
+        "title": "Insight Code",
+        "category": "CodeInsight"
+      },
+      {
+        "command": "aiCodeInsight.clearDiagnostics",
+        "title": " Clear Warnings",
+        "category": "CodeInsight"
+      },
+      {
+        "command": "aiCodeInsight.hideDiagnostic",
+        "title": "Hide Warning",
+        "category": "CodeInsight"
+      },
+      {
+        "command": "aiCodeInsight.hideAllDiagnostics",
+        "title": "Hide All Warning",
+        "category": "CodeInsight"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "aiCodeInsight.reviewCode",
+          "when": "editorHasCodeActionsProvider",
+          "group": "navigation"
+        }
+      ],
+      "aiCodeInsight.submenu": [
+        {
+          "command": "aiCodeInsight.reviewCode",
+          "group": "1_main"
+        },
+        {
+          "command": "aiCodeInsight.clearDiagnostics",
+          "group": "1_main"
+        },
+        {
+          "command": "aiCodeInsight.hideAllDiagnostics",
+          "group": "1_main"
+        }
+      ]
+    },
     "configuration": {
       "title": "AI Code Insight",
       "properties": {
