@@ -16,3 +16,5 @@ This extension contributes the following settings:
 
 * `aiCodeInsight.apiKey`: OpenAI API Key for AI Code Insight.
 * `aiCodeInsight.model`: The model of OpenAI to use for AI Code Insight. Defaults to `gpt-4-1106-preview`.
+* `aiCodeInsight.maxLines`:The maximum number of lines of code that can be analyzed. Determined by the number of tokens that the model can handle. Defaults to `200`.
+* `aiCodeInsight.maxReviews`: The maximum number of review suggestions that can be returned. Defaults to `10`.
