@@ -2,7 +2,7 @@
   "name": "ai-code-insight",
   "displayName": "AI code insight",
   "description": "",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
   "icon": "icon.png",
   "publisher": "ming8525",
   "repository": "https://github.com/ming8525/vscode-ai-code-insight",
