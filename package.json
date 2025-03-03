@@ -96,6 +96,16 @@
           "type": "string",
           "default": "gpt-4-1106-preview",
           "description": "The model of OpenAI to use for AI Code Insight."
+        },
+        "aiCodeInsight.maxLines": {
+          "type": "number",
+          "default": 200,
+          "description": "The maximum number of lines of code that can be analyzed. Determined by the number of tokens that the model can handle."
+        },
+        "aiCodeInsight.maxReviews": {
+          "type": "number",
+          "default": 10,
+          "description": "The maximum number of review suggestions that can be returned."
         }
       }
     }

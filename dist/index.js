@@ -53,6 +53,14 @@ async function getModel() {
     const config = vscode.workspace.getConfiguration('aiCodeReview');
     return config.get('model') || 'gpt-4-1106-preview';
 }
+async function getMaxLines() {
+    const config = vscode.workspace.getConfiguration('aiCodeReview');
+    return config.get('maxLines') || 200;
+}
+async function getMaxReviews() {
+    const config = vscode.workspace.getConfiguration('aiCodeReview');
+    return config.get('maxReviews') || 10;
+}
 function getLanguageFromFileName(fileName) {
     const ext = fileName.split('.').pop();
     const mapping = {
@@ -72,8 +80,8 @@ function getLanguageFromFileName(fileName) {
     };
     return ext ? mapping[ext] : 'plaintext';
 }
-function createPrompt(fileName, code) {
-    const fileContent = code.split("\n").map((line, index) => `${index + 1}: ${line}`).join("\n");
+function createPrompt(fileName, code, maxLines = 100, maxReviews = 10) {
+    let fileContent = code.split("\n").map((line, index) => `${index + 1}: ${line}`).slice(0, maxLines).join("\n");
     return `Your task is to review the following code and provide constructive feedback. Instructions:
 - Provide the response in the following JSON format: {"reviews": [{"lineNumber": <line_number>, "reviewComment": "<review comment>"}]}
 - The \"lineNumber\" should exactly match the line numbers shown in the provided code.
@@ -81,6 +89,7 @@ function createPrompt(fileName, code) {
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Write the comment in GitHub Markdown format.
 - Focus only on code quality, best practices, potential bugs, performance, and readability.
+- If there are more than ${maxReviews} issues, prioritize the most critical ones and return only the top ${maxReviews}.
 - IMPORTANT: NEVER suggest adding comments to the code.
 
 Review the following code in the file **"${fileName}"** and provide feedback accordingly:
@@ -129,6 +138,8 @@ async function reviewCode() {
         return;
     }
     const model = await getModel();
+    const maxLines = await getMaxLines();
+    const maxReviews = await getMaxReviews();
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showWarningMessage('Please open a code file');
@@ -141,7 +152,7 @@ async function reviewCode() {
     }
     const fileName = editor.document.fileName;
     const code = editor.document.getText();
-    const prompt = createPrompt(fileName, code);
+    const prompt = createPrompt(fileName, code, maxLines, maxReviews);
     vscode.window.showInformationMessage('Analyzing code, please wait...');
     try {
         const openai = new openai_1.default({ apiKey });
