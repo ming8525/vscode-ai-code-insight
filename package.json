@@ -112,9 +112,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "clean": "rimraf dist",
     "lint": "eslint src",
     "package": "vsce package -o dist"
   },
@@ -124,6 +124,7 @@
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
     "eslint": "^9.19.0",
+    "rimraf": "^6.0.1",
     "typescript": "^5.7.3",
     "vsce": "^2.15.0"
   }
