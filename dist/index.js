@@ -185,7 +185,7 @@ class HideDiagnosticQuickFix {
         for (const diagnostic of context.diagnostics) {
             if (typeof diagnostic.code === 'string' && !hiddenDiagnostics.has(diagnostic.code)) {
                 if (!seenCodes.has(diagnostic.code)) {
-                    const hideSingleAction = new vscode.CodeAction('CodeInsight: Hide Warning', vscode.CodeActionKind.QuickFix);
+                    const hideSingleAction = new vscode.CodeAction('Hide review warning', vscode.CodeActionKind.QuickFix);
                     hideSingleAction.command = {
                         title: 'Hide this warning',
                         command: 'aiCodeInsight.hideDiagnostic',
@@ -195,15 +195,6 @@ class HideDiagnosticQuickFix {
                     seenCodes.add(diagnostic.code);
                 }
             }
-        }
-        if (context.diagnostics.some(d => typeof d.code === 'string' && !hiddenDiagnostics.has(d.code))) {
-            const hideAllAction = new vscode.CodeAction('CodeInsight: Hide All Warnings', vscode.CodeActionKind.QuickFix);
-            hideAllAction.command = {
-                title: 'Hide all warnings',
-                command: 'aiCodeInsight.hideAllDiagnostics',
-                arguments: [uri]
-            };
-            actions.push(hideAllAction);
         }
         return actions;
     }

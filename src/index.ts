@@ -166,7 +166,7 @@ class HideDiagnosticQuickFix implements vscode.CodeActionProvider {
 			if (typeof diagnostic.code === 'string' && !hiddenDiagnostics.has(diagnostic.code)) {
 				if (!seenCodes.has(diagnostic.code)) {
 					const hideSingleAction = new vscode.CodeAction(
-						'CodeInsight: Hide Warning',
+						'Hide review warning',
 						vscode.CodeActionKind.QuickFix
 					)
 
@@ -180,21 +180,6 @@ class HideDiagnosticQuickFix implements vscode.CodeActionProvider {
 					seenCodes.add(diagnostic.code)
 				}
 			}
-		}
-
-		if (context.diagnostics.some(d => typeof d.code === 'string' && !hiddenDiagnostics.has(d.code))) {
-			const hideAllAction = new vscode.CodeAction(
-				'CodeInsight: Hide All Warnings',
-				vscode.CodeActionKind.QuickFix
-			)
-
-			hideAllAction.command = {
-				title: 'Hide all warnings',
-				command: 'aiCodeInsight.hideAllDiagnostics',
-				arguments: [uri]
-			}
-
-			actions.push(hideAllAction)
 		}
 
 		return actions

@@ -33,45 +33,53 @@
     "commands": [
       {
         "command": "aiCodeInsight.reviewCode",
-        "title": "Insight Code",
-        "category": "CodeInsight"
-      },
-      {
-        "command": "aiCodeInsight.clearDiagnostics",
-        "title": " Clear Warnings",
+        "title": "Review Code",
         "category": "CodeInsight"
       },
       {
         "command": "aiCodeInsight.hideDiagnostic",
-        "title": "Hide Warning",
+        "title": "Hide warning",
         "category": "CodeInsight"
       },
       {
         "command": "aiCodeInsight.hideAllDiagnostics",
-        "title": "Hide All Warning",
+        "title": "Hide warnings",
         "category": "CodeInsight"
+      },
+      {
+        "command": "aiCodeInsight.clearDiagnostics",
+        "title": "Clear cache",
+        "category": "CodeInsight"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "aiCodeInsightMenu",
+        "label": "Code Insight",
+        "title": "Code Insight",
+        "icon": "$(light-bulb)"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "aiCodeInsight.reviewCode",
-          "when": "editorHasCodeActionsProvider",
-          "group": "navigation"
+          "submenu": "aiCodeInsightMenu",
+          "group": "navigation",
+          "when": "editorTextFocus"
         }
       ],
-      "aiCodeInsight.submenu": [
+      "aiCodeInsightMenu": [
         {
           "command": "aiCodeInsight.reviewCode",
-          "group": "1_main"
-        },
-        {
-          "command": "aiCodeInsight.clearDiagnostics",
-          "group": "1_main"
+          "group": "1_review"
         },
         {
           "command": "aiCodeInsight.hideAllDiagnostics",
-          "group": "1_main"
+          "group": "2_diagnostics"
+        },
+        {
+          "command": "aiCodeInsight.clearDiagnostics",
+          "group": "2_diagnostics"
         }
       ]
     },
